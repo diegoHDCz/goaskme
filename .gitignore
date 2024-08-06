@@ -1,0 +1,9 @@
+# Binaries, plugins, and libraries
+*.dll
+*.dylib
+*.exe
+*.so
+
+# Testing artifacts
+*.test
+*.tmp
