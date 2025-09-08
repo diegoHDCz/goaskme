@@ -12,6 +12,8 @@ RUN go mod download
 COPY . .
 RUN go mod tidy
 
+# Instala o executável "tern" para as migrações
+RUN go install github.com/jackc/tern@latest
 # Compila a primeira aplicação
 RUN CGO_ENABLED=0 go build -o /app/terndotenv ./cmd/tools/terndotenv/main.go
 
@@ -25,8 +27,9 @@ FROM alpine:latest
 WORKDIR /usr/local/bin
 
 # Copia os binários compilados
-COPY --from=builder /app/terndotenv .
+COPY --from=builder /app/ternsdotenv .
 COPY --from=builder /app/wsrs .
+COPY --from=builder /go/bin/tern .
 
 # Comando para executar as duas aplicações em sequência
 ENTRYPOINT ["sh", "-c", "./terndotenv && ./wsrs"]
