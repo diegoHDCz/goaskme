@@ -10,7 +10,7 @@ RUN go mod download
 
 COPY . .
 
-RUN CGO_ENABLED=0 go build -o /app/ternsdotenv ./cmd/tools/ternsdotenv/main.go
+RUN CGO_ENABLED=0 go build -o /app/ternsdotenv ./cmd/tools/terndotenv/main.go
 
 
 RUN CGO_ENABLED=0 go build -o /app/wsrs ./cmd/tools/wsrs/main.go
