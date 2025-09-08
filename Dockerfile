@@ -27,7 +27,7 @@ FROM alpine:latest
 WORKDIR /usr/local/bin
 
 # Copia os binários compilados
-COPY --from=builder /app/ternsdotenv .
+COPY --from=builder /app/terndotenv .
 COPY --from=builder /app/wsrs .
 COPY --from=builder /go/bin/tern .
 
