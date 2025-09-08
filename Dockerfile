@@ -13,10 +13,10 @@ COPY . .
 RUN go mod tidy
 
 # Compila a primeira aplicação
-RUN CGO_ENABLED=0 go build -o /app/ternsdotenv ./cmd/tools/ternsdotenv/main.go
+RUN CGO_ENABLED=0 go build -o /app/terndotenv ./cmd/tools/terndotenv/main.go
 
 # Compila a segunda aplicação
-RUN CGO_ENABLED=0 go build -o /app/wsrs ./cmd/tools/wsrs/main.go
+RUN CGO_ENABLED=0 go build -o /app/wsrs ./cmd/wsrs/main.go
 
 # Estágio 2: Imagem de produção final
 FROM alpine:latest
@@ -25,8 +25,8 @@ FROM alpine:latest
 WORKDIR /usr/local/bin
 
 # Copia os binários compilados
-COPY --from=builder /app/ternsdotenv .
+COPY --from=builder /app/terndotenv .
 COPY --from=builder /app/wsrs .
 
 # Comando para executar as duas aplicações em sequência
-ENTRYPOINT ["sh", "-c", "./ternsdotenv && ./wsrs"]
+ENTRYPOINT ["sh", "-c", "./terndotenv && ./wsrs"]
