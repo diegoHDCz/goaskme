@@ -5,6 +5,8 @@
 package pgstore
 
 import (
+	"time"
+
 	"github.com/google/uuid"
 )
 
@@ -14,6 +16,9 @@ type Message struct {
 	Message       string
 	ReactionCount int64
 	Answered      bool
+	AuthorID      string
+	AuthorName    string
+	CreatedAt     time.Time
 }
 
 type Room struct {

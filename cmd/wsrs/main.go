@@ -11,12 +11,13 @@ import (
 	"github.com/diegoHDCz/goaskme/internal/api"
 	"github.com/diegoHDCz/goaskme/internal/store/pgstore"
 	"github.com/jackc/pgx/v5/pgxpool"
+	"github.com/joho/godotenv"
 )
 
 func main() {
-	// if err := godotenv.Load(); err != nil {
-	// 	panic(err)
-	// }
+	if err := godotenv.Load(); err != nil {
+		panic(err)
+	}
 
 	ctx := context.Background()
 
