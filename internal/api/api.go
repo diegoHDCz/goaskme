@@ -4,6 +4,7 @@ import (
 	"context"
 	"encoding/json"
 	"errors"
+	"fmt"
 	"log/slog"
 	"net/http"
 	"sync"
@@ -53,7 +54,7 @@ func NewHandler(q *pgstore.Queries) http.Handler {
 
 	r.Route("/api", func(r chi.Router) {
 		r.Route("/rooms", func(r chi.Router) {
-			r.Post("/", a.handleCreateRoom)
+			r.Post("/", a.handleCreateNewRoom)
 			r.Get("/", a.handleGetRooms)
 
 			r.Route("/{room_id}", func(r chi.Router) {
@@ -172,6 +173,33 @@ func (h apiHandler) handleCreateRoom(w http.ResponseWriter, r *http.Request) {
 	}
 
 	roomID, err := h.q.InsertRoom(r.Context(), body.Theme)
+	if err != nil {
+		slog.Error("failed to insert room", "error", err)
+		http.Error(w, "something went wrong", http.StatusInternalServerError)
+		return
+	}
+
+	type response struct {
+		ID string `json:"id"`
+	}
+
+	sendJSON(w, response{ID: roomID.String()})
+}
+
+func (h apiHandler) handleCreateNewRoom(w http.ResponseWriter, r *http.Request) {
+	type _body struct {
+		Theme string `json:"theme"`
+		ID    string `json:"id"`
+	}
+	var body _body
+	if err := json.NewDecoder(r.Body).Decode(&body); err != nil {
+		http.Error(w, "invalid json", http.StatusBadRequest)
+		return
+	}
+
+	fmt.Println("Creating new room with ID:", body.ID)
+
+	roomID, err := h.q.InsertNewRoom(r.Context(), body.Theme, uuid.MustParse(body.ID))
 	if err != nil {
 		slog.Error("failed to insert room", "error", err)
 		http.Error(w, "something went wrong", http.StatusInternalServerError)

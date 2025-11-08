@@ -164,6 +164,20 @@ func (q *Queries) InsertRoom(ctx context.Context, theme string) (uuid.UUID, erro
 	return id, err
 }
 
+const insertNewRoom = `-- name: InsertNewRoom :one
+INSERT INTO rooms
+    ( "id", "theme" ) VALUES
+    ( $1, $2 )
+RETURNING "id"
+`
+
+func (q *Queries) InsertNewRoom(ctx context.Context, theme string, id uuid.UUID) (uuid.UUID, error) {
+	row := q.db.QueryRow(ctx, insertNewRoom, id, theme)
+	var newID uuid.UUID
+	err := row.Scan(&newID)
+	return newID, err
+}
+
 const markMessageAsAnswered = `-- name: MarkMessageAsAnswered :exec
 UPDATE messages
 SET
