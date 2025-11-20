@@ -101,9 +101,9 @@ type MessageMessageAnswered struct {
 }
 
 type MessageMessageCreated struct {
-	ID      string `json:"id"`
-	Message string `json:"message"`
-	AuthorID string `json:"authorId"`
+	ID         string `json:"id"`
+	Message    string `json:"message"`
+	AuthorID   string `json:"authorId"`
 	AuthorName string `json:"authorName"`
 }
 
@@ -196,6 +196,19 @@ func (h apiHandler) handleCreateNewRoom(w http.ResponseWriter, r *http.Request) 
 		http.Error(w, "invalid json", http.StatusBadRequest)
 		return
 	}
+	reqRoomID, err := uuid.Parse(body.ID)
+	if err != nil {
+		http.Error(w, "invalid room id", http.StatusBadRequest)
+
+	}
+	roomExist, err := h.q.GetRoom(r.Context(), reqRoomID)
+	type response struct {
+		ID string `json:"id"`
+	}
+	if err == nil {
+		sendJSON(w, response{ID: roomExist.ID.String()})
+		return
+	}
 
 	fmt.Println("Creating new room with ID:", body.ID)
 
@@ -204,10 +217,6 @@ func (h apiHandler) handleCreateNewRoom(w http.ResponseWriter, r *http.Request) 
 		slog.Error("failed to insert room", "error", err)
 		http.Error(w, "something went wrong", http.StatusInternalServerError)
 		return
-	}
-
-	type response struct {
-		ID string `json:"id"`
 	}
 
 	sendJSON(w, response{ID: roomID.String()})
@@ -244,8 +253,8 @@ func (h apiHandler) handleCreateRoomMessage(w http.ResponseWriter, r *http.Reque
 	}
 
 	type _body struct {
-		Message string `json:"message"`
-		AuthorID string `json:"authorId"`
+		Message    string `json:"message"`
+		AuthorID   string `json:"authorId"`
 		AuthorName string `json:"authorName"`
 	}
 	var body _body
@@ -271,9 +280,9 @@ func (h apiHandler) handleCreateRoomMessage(w http.ResponseWriter, r *http.Reque
 		Kind:   MessageKindMessageCreated,
 		RoomID: rawRoomID,
 		Value: MessageMessageCreated{
-			ID:      messageID.String(),
-			Message: body.Message,
-			AuthorID: body.AuthorID,
+			ID:         messageID.String(),
+			Message:    body.Message,
+			AuthorID:   body.AuthorID,
 			AuthorName: body.AuthorName,
 		},
 	})
