@@ -4,6 +4,7 @@ import (
 	"context"
 	"encoding/json"
 	"errors"
+	"fmt"
 	"log/slog"
 	"net/http"
 	"sync"
@@ -53,7 +54,7 @@ func NewHandler(q *pgstore.Queries) http.Handler {
 
 	r.Route("/api", func(r chi.Router) {
 		r.Route("/rooms", func(r chi.Router) {
-			r.Post("/", a.handleCreateRoom)
+			r.Post("/", a.handleCreateNewRoom)
 			r.Get("/", a.handleGetRooms)
 
 			r.Route("/{room_id}", func(r chi.Router) {
@@ -100,8 +101,10 @@ type MessageMessageAnswered struct {
 }
 
 type MessageMessageCreated struct {
-	ID      string `json:"id"`
-	Message string `json:"message"`
+	ID         string `json:"id"`
+	Message    string `json:"message"`
+	AuthorID   string `json:"authorId"`
+	AuthorName string `json:"authorName"`
 }
 
 type Message struct {
@@ -183,6 +186,42 @@ func (h apiHandler) handleCreateRoom(w http.ResponseWriter, r *http.Request) {
 	sendJSON(w, response{ID: roomID.String()})
 }
 
+func (h apiHandler) handleCreateNewRoom(w http.ResponseWriter, r *http.Request) {
+	type _body struct {
+		Theme string `json:"theme"`
+		ID    string `json:"id"`
+	}
+	var body _body
+	if err := json.NewDecoder(r.Body).Decode(&body); err != nil {
+		http.Error(w, "invalid json", http.StatusBadRequest)
+		return
+	}
+	reqRoomID, err := uuid.Parse(body.ID)
+	if err != nil {
+		http.Error(w, "invalid room id", http.StatusBadRequest)
+
+	}
+	roomExist, err := h.q.GetRoom(r.Context(), reqRoomID)
+	type response struct {
+		ID string `json:"id"`
+	}
+	if err == nil {
+		sendJSON(w, response{ID: roomExist.ID.String()})
+		return
+	}
+
+	fmt.Println("Creating new room with ID:", body.ID)
+
+	roomID, err := h.q.InsertNewRoom(r.Context(), body.Theme, uuid.MustParse(body.ID))
+	if err != nil {
+		slog.Error("failed to insert room", "error", err)
+		http.Error(w, "something went wrong", http.StatusInternalServerError)
+		return
+	}
+
+	sendJSON(w, response{ID: roomID.String()})
+}
+
 func (h apiHandler) handleGetRooms(w http.ResponseWriter, r *http.Request) {
 	rooms, err := h.q.GetRooms(r.Context())
 	if err != nil {
@@ -214,7 +253,9 @@ func (h apiHandler) handleCreateRoomMessage(w http.ResponseWriter, r *http.Reque
 	}
 
 	type _body struct {
-		Message string `json:"message"`
+		Message    string `json:"message"`
+		AuthorID   string `json:"authorId"`
+		AuthorName string `json:"authorName"`
 	}
 	var body _body
 	if err := json.NewDecoder(r.Body).Decode(&body); err != nil {
@@ -222,7 +263,7 @@ func (h apiHandler) handleCreateRoomMessage(w http.ResponseWriter, r *http.Reque
 		return
 	}
 
-	messageID, err := h.q.InsertMessage(r.Context(), pgstore.InsertMessageParams{RoomID: roomID, Message: body.Message})
+	messageID, err := h.q.InsertNewMessage(r.Context(), pgstore.InsertNewMessageParams{RoomID: roomID, Message: body.Message, AuthorID: body.AuthorID, AuthorName: body.AuthorName})
 	if err != nil {
 		slog.Error("failed to insert message", "error", err)
 		http.Error(w, "something went wrong", http.StatusInternalServerError)
@@ -239,8 +280,10 @@ func (h apiHandler) handleCreateRoomMessage(w http.ResponseWriter, r *http.Reque
 		Kind:   MessageKindMessageCreated,
 		RoomID: rawRoomID,
 		Value: MessageMessageCreated{
-			ID:      messageID.String(),
-			Message: body.Message,
+			ID:         messageID.String(),
+			Message:    body.Message,
+			AuthorID:   body.AuthorID,
+			AuthorName: body.AuthorName,
 		},
 	})
 }

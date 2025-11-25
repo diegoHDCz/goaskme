@@ -7,6 +7,7 @@ package pgstore
 
 import (
 	"context"
+	"time"
 
 	"github.com/google/uuid"
 )
@@ -48,7 +49,7 @@ func (q *Queries) GetRoom(ctx context.Context, id uuid.UUID) (Room, error) {
 
 const getRoomMessages = `-- name: GetRoomMessages :many
 SELECT
-    "id", "room_id", "message", "reaction_count", "answered"
+    "id", "room_id", "message", "reaction_count", "answered", "author_id", "author_name", created_at
 FROM messages
 WHERE
     room_id = $1
@@ -69,6 +70,9 @@ func (q *Queries) GetRoomMessages(ctx context.Context, roomID uuid.UUID) ([]Mess
 			&i.Message,
 			&i.ReactionCount,
 			&i.Answered,
+			&i.AuthorID,
+			&i.AuthorName,
+			&i.CreatedAt,
 		); err != nil {
 			return nil, err
 		}
@@ -113,9 +117,30 @@ INSERT INTO messages
 RETURNING "id"
 `
 
+const insertNewMessage = `-- name: InsertMessage :one
+INSERT INTO messages
+    ( "room_id", "message", "author_id", "author_name", "created_at" ) VALUES
+    ( $1, $2, $3, $4, $5 )
+RETURNING "id"
+`
+
 type InsertMessageParams struct {
 	RoomID  uuid.UUID
 	Message string
+}
+
+type InsertNewMessageParams struct {
+	RoomID     uuid.UUID
+	Message    string
+	AuthorID   string
+	AuthorName string
+}
+
+func (q *Queries) InsertNewMessage(ctx context.Context, arg InsertNewMessageParams) (uuid.UUID, error) {
+	row := q.db.QueryRow(ctx, insertNewMessage, arg.RoomID, arg.Message, arg.AuthorID, arg.AuthorName, time.Now())
+	var id uuid.UUID
+	err := row.Scan(&id)
+	return id, err
 }
 
 func (q *Queries) InsertMessage(ctx context.Context, arg InsertMessageParams) (uuid.UUID, error) {
@@ -137,6 +162,20 @@ func (q *Queries) InsertRoom(ctx context.Context, theme string) (uuid.UUID, erro
 	var id uuid.UUID
 	err := row.Scan(&id)
 	return id, err
+}
+
+const insertNewRoom = `-- name: InsertNewRoom :one
+INSERT INTO rooms
+    ( "id", "theme" ) VALUES
+    ( $1, $2 )
+RETURNING "id"
+`
+
+func (q *Queries) InsertNewRoom(ctx context.Context, theme string, id uuid.UUID) (uuid.UUID, error) {
+	row := q.db.QueryRow(ctx, insertNewRoom, id, theme)
+	var newID uuid.UUID
+	err := row.Scan(&newID)
+	return newID, err
 }
 
 const markMessageAsAnswered = `-- name: MarkMessageAsAnswered :exec
