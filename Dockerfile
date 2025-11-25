@@ -14,6 +14,8 @@ RUN go mod tidy
 
 # Instala o executável "tern" para as migrações
 RUN go install github.com/jackc/tern@latest
+# Compila a primeira aplicação
+RUN CGO_ENABLED=0 go build -o /app/terndotenv ./cmd/tools/terndotenv/main.go
 
 # Compila a segunda aplicação
 RUN CGO_ENABLED=0 go build -o /app/wsrs ./cmd/wsrs/main.go
@@ -24,11 +26,10 @@ FROM alpine:latest
 # Define o diretório de trabalho na imagem final
 WORKDIR /usr/local/bin
 
-
+# Copia os binários compilados
+COPY --from=builder /app/terndotenv .
 COPY --from=builder /app/wsrs .
+COPY --from=builder /go/bin/tern .
 
-
-# Expõe a porta que sua aplicação usa
-EXPOSE 8080
 # Comando para executar as duas aplicações em sequência
-CMD ["./wsrs"]
+ENTRYPOINT ["sh", "-c", "./terndotenv && ./wsrs"]
