@@ -19,7 +19,11 @@ func main() {
 	// }
 
 	ctx := context.Background()
-
+fmt.Println("USER:", os.Getenv("WSRS_DATABASE_USER"))
+fmt.Println("PASS:", os.Getenv("WSRS_DATABASE_PASSWORD"))
+fmt.Println("HOST:", os.Getenv("WSRS_DATABASE_HOST"))
+	fmt.Println("PORT:", os.Getenv("WSRS_DATABASE_PORT"))
+fmt.Println("NAME:", os.Getenv("WSRS_DATABASE_NAME"))
 	pool, err := pgxpool.New(ctx, fmt.Sprintf(
 		"user=%s password=%s host=%s port=%s dbname=%s",
 		os.Getenv("WSRS_DATABASE_USER"),
