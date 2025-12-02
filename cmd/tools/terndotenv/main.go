@@ -16,12 +16,12 @@ fmt.Println("HOST:", os.Getenv("WSRS_DATABASE_HOST"))
 	fmt.Println("PORT:", os.Getenv("WSRS_DATABASE_PORT"))
 fmt.Println("NAME:", os.Getenv("WSRS_DATABASE_NAME"))
 	cmd := exec.Command(
-		 "tern",
-    "migrate",
-    "--migrations",
-    "/app/internal/store/pgstore/migrations",
-    "--config",
-    "/app/internal/store/pgstore/migrations/tern.conf",
+		"tern",
+		"migrate",
+		"--migrations",
+		"./internal/store/pgstore/migrations",
+		"--config",
+		"./internal/store/pgstore/migrations/tern.conf",
 	)
 
 	cmd.Stdout = &out

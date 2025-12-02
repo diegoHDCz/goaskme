@@ -31,5 +31,7 @@ COPY --from=builder /app/terndotenv .
 COPY --from=builder /app/wsrs .
 COPY --from=builder /go/bin/tern .
 
+COPY --from=builder /app/internal/store/pgstore/migrations ./internal/store/pgstore/migrations
+
 # Comando para executar as duas aplicações em sequência
 ENTRYPOINT ["sh", "-c", "./terndotenv && ./wsrs"]
