@@ -6,7 +6,7 @@ CREATE TABLE IF NOT EXISTS messages (
     "answered"          BOOLEAN                         NOT NULL    DEFAULT false,
     "author_id"         varchar(255)                    NOT NULL,
     "author_name"       varchar(255)                    NOT NULL,
-    "created_at"        timestamptz                     NOT NULL,   DEFAULT now(),
+    "created_at"        timestamptz                     NOT NULL   DEFAULT now(),
     FOREIGN KEY (room_id) REFERENCES rooms(id)
 );
 
