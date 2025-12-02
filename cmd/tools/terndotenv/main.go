@@ -1,14 +1,20 @@
 package main
 
 import (
+	"bytes"
+	"fmt"
+	"os"
 	"os/exec"
 )
 
 func main() {
-	// if err := godotenv.Load(); err != nil {
-	// 	panic(err)
-	// }
-
+	var out bytes.Buffer
+	var stderr bytes.Buffer
+fmt.Println("USER:", os.Getenv("WSRS_DATABASE_USER"))
+fmt.Println("PASS:", os.Getenv("WSRS_DATABASE_PASSWORD"))
+fmt.Println("HOST:", os.Getenv("WSRS_DATABASE_HOST"))
+	fmt.Println("PORT:", os.Getenv("WSRS_DATABASE_PORT"))
+fmt.Println("NAME:", os.Getenv("WSRS_DATABASE_NAME"))
 	cmd := exec.Command(
 		"tern",
 		"migrate",
@@ -17,7 +23,14 @@ func main() {
 		"--config",
 		"./internal/store/pgstore/migrations/tern.conf",
 	)
-	if err := cmd.Run(); err != nil {
+
+	cmd.Stdout = &out
+	cmd.Stderr = &stderr
+
+	err := cmd.Run()
+	if err != nil {
+		fmt.Println("STDOUT:", out.String())
+		fmt.Println("STDERR:", stderr.String())
 		panic(err)
 	}
 }
