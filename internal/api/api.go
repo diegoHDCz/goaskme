@@ -59,6 +59,7 @@ func NewHandler(q *pgstore.Queries) http.Handler {
 
 			r.Route("/{room_id}", func(r chi.Router) {
 				r.Get("/", a.handleGetRoom)
+				r.Get("/unread", a.handleCountUnvisualizedMessages)
 
 				r.Route("/messages", func(r chi.Router) {
 					r.Post("/", a.handleCreateRoomMessage)
@@ -69,6 +70,7 @@ func NewHandler(q *pgstore.Queries) http.Handler {
 						r.Patch("/react", a.handleReactToMessage)
 						r.Delete("/react", a.handleRemoveReactFromMessage)
 						r.Patch("/answer", a.handleMarkMessageAsAnswered)
+						r.Patch("/visualize", a.handleMarkMessageAsVisualized)
 					})
 				})
 			})
@@ -437,4 +439,68 @@ func (h apiHandler) handleMarkMessageAsAnswered(w http.ResponseWriter, r *http.R
 			ID: rawID,
 		},
 	})
+}
+
+func (h apiHandler) handleMarkMessageAsVisualized(w http.ResponseWriter, r *http.Request) {
+	_, rawRoomID, _, ok := h.readRoom(w, r)
+	if !ok {
+		return
+	}
+
+	rawID := chi.URLParam(r, "message_id")
+	id, err := uuid.Parse(rawID)
+	if err != nil {
+		http.Error(w, "invalid message id", http.StatusBadRequest)
+		return
+	}
+
+	err = h.q.MarkMessageAsVisualized(r.Context(), id)
+	if err != nil {
+		http.Error(w, "something went wrong", http.StatusInternalServerError)
+		slog.Error("failed to mark message as visualized", "error", err)
+		return
+	}
+
+	w.WriteHeader(http.StatusOK)
+
+	go h.notifyClients(Message{
+		Kind:   MessageKindMessageAnswered,
+		RoomID: rawRoomID,
+		Value: MessageMessageAnswered{
+			ID: rawID,
+		},
+	})
+}
+
+func (h apiHandler) handleCountUnvisualizedMessages(w http.ResponseWriter, r *http.Request) {
+
+	// 1. O 'room' retornado pelo seu helper já contém o campo ID
+	room, _, _, ok := h.readRoom(w, r)
+	if !ok {
+		return
+	}
+
+	rawUserID := r.URL.Query().Get("user_id")
+	userID, err := uuid.Parse(rawUserID)
+	if err != nil {
+		http.Error(w, "invalid user id", http.StatusBadRequest)
+		return
+	}
+
+	count, err := h.q.GetUnvisualizedMessages(r.Context(), pgstore.GetUnvisualizedMessagesParams{
+		RoomID:   room.ID,         // Apenas room.ID, sem métodos
+		AuthorID: userID.String(), // Apenas userID, sem métodos
+	})
+
+	if err != nil {
+		slog.Error("failed to count unvisualized messages", "error", err)
+		http.Error(w, "something went wrong", http.StatusInternalServerError)
+		return
+	}
+
+	type response struct {
+		Count int64 `json:"count"`
+	}
+
+	sendJSON(w, response{Count: count})
 }

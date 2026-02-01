@@ -57,3 +57,20 @@ SET
     answered = true
 WHERE
     id = $1;
+
+
+ --name: MarkMessageAsVisualized :exec
+UPDATE messages
+SET
+    visualized = true,
+    visualized_at = NOW()
+WHERE
+    id = $1;
+
+-- name: GetUnvisualizedMessages :one
+SELECT
+    COUNT(*)
+FROM messages
+WHERE visualized = false
+AND room_id = $1
+AND author_id != $2;

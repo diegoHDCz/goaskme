@@ -222,3 +222,38 @@ func (q *Queries) RemoveReactionFromMessage(ctx context.Context, id uuid.UUID) (
 	err := row.Scan(&reaction_count)
 	return reaction_count, err
 }
+
+const getUnvisualizedMessages = `-- name: GetUnvisualizedMessages :one
+SELECT
+    COUNT(*)
+FROM messages
+WHERE visualized = false
+AND room_id = $1
+AND author_id != $2
+`
+
+type GetUnvisualizedMessagesParams struct {
+	RoomID   uuid.UUID
+	AuthorID string
+}
+
+func (q *Queries) GetUnvisualizedMessages(ctx context.Context, arg GetUnvisualizedMessagesParams) (int64, error) {
+	row := q.db.QueryRow(ctx, getUnvisualizedMessages, arg.RoomID, arg.AuthorID)
+	var count int64
+	err := row.Scan(&count)
+	return count, err
+}
+
+func (q *Queries) MarkMessageAsVisualized(ctx context.Context, id uuid.UUID) error {
+	_, err := q.db.Exec(ctx, markMessageAsAnswered, id)
+	return err
+}
+
+const visualize = `-- name: MarkMessageAsVisualized :exec
+UPDATE messages
+SET
+    visualized = true,
+		visualized_at = NOW()
+WHERE
+    id = $1
+`
